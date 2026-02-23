@@ -37,7 +37,7 @@ function Navbar({ role }) {
 const styles = {
   nav: { background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", position: "sticky", top: 0, zIndex: 100 },
   container: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", maxWidth: "1400px", margin: "0 auto" },
-  brandText: { margin: 0, color: "#c62828", fontWeight: "700", fontSize: "32px" },
+  brandText: { margin: 0, color: "#000", fontWeight: "700", fontSize: "36px" },
   links: { display: "flex", gap: "28px", alignItems: "center" },
   link: { color: "#000", textDecoration: "none", fontWeight: "500", fontSize: "17px" },
   logoutBtn: { padding: "9px 20px", background: "#1976d2", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "600", fontSize: "16px" }

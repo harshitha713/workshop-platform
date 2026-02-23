@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
-import bgImage from "./project-pic.jpeg";
 
 function Home() {
   const [role, setRole] = useState("user");
@@ -13,7 +12,7 @@ function Home() {
   };
 
   return (
-    <div className="home" style={{backgroundImage: `url(${bgImage})`}}>
+    <div className="home">
       <h1 className="title" style={{color: "#000"}}>Online Workshop Platform</h1>
       <p className="tagline" style={{color: "#000"}}>
         Online Workshop & Training Management Platform

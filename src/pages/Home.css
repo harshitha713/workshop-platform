@@ -1,8 +1,6 @@
 .home {
   min-height: 100vh;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: #f5f7fa;
   display: flex;
   flex-direction: column;
   align-items: center;
