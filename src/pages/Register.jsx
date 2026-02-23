@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Register.css";
+import bgImage from "./project-pic.jpeg";
 
 function Register() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ function Register() {
   };
 
   return (
-    <div className="register">
+    <div className="register" style={{backgroundImage: `url(${bgImage})`}}>
       <h1 className="title">User Sign Up</h1>
       <p className="tagline">Create your Online Workshop Platform account</p>
 

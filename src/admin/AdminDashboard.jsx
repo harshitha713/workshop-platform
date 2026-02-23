@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { getWorkshops, getRegistrations } from "../services/api";
+import { FiBookOpen, FiUsers, FiPlus, FiEye, FiUpload, FiFolder } from "react-icons/fi";
 
 function AdminDashboard() {
   const [workshops, setWorkshops] = useState([]);
@@ -36,18 +37,22 @@ function AdminDashboard() {
           <h3 style={styles.sectionTitle}>Quick Actions</h3>
           <div style={styles.actionGrid}>
             <Link to="/admin/add-workshop" style={styles.actionCard}>
+              <FiPlus style={styles.actionIcon} />
               <h4 style={styles.actionTitle}>Add Workshop</h4>
               <p style={styles.actionDesc}>Create a new training session</p>
             </Link>
             <Link to="/admin/registrations" style={styles.actionCard}>
+              <FiEye style={styles.actionIcon} />
               <h4 style={styles.actionTitle}>View Registrations</h4>
               <p style={styles.actionDesc}>See all user registrations</p>
             </Link>
             <Link to="/admin/upload-resources" style={styles.actionCard}>
+              <FiUpload style={styles.actionIcon} />
               <h4 style={styles.actionTitle}>Upload Resources</h4>
               <p style={styles.actionDesc}>Add training materials</p>
             </Link>
             <Link to="/admin/resources" style={styles.actionCard}>
+              <FiFolder style={styles.actionIcon} />
               <h4 style={styles.actionTitle}>View Resources</h4>
               <p style={styles.actionDesc}>See uploaded resources</p>
             </Link>
@@ -105,7 +110,8 @@ const styles = {
   section: { marginBottom: "32px" },
   sectionTitle: { color: "#333", fontSize: "18px", fontWeight: "600", marginBottom: "16px" },
   actionGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "18px" },
-  actionCard: { background: "white", borderRadius: "8px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", textDecoration: "none", color: "inherit", border: "1px solid #e8eef5", transition: "transform 0.2s" },
+  actionCard: { background: "white", borderRadius: "8px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", textDecoration: "none", color: "inherit", border: "1px solid #e8eef5", transition: "transform 0.2s", textAlign: "center" },
+  actionIcon: { fontSize: "32px", color: "#1976d2", marginBottom: "12px" },
   actionTitle: { fontSize: "18px", fontWeight: "600", color: "#333", marginBottom: "6px", marginTop: "0" },
   actionDesc: { fontSize: "16px", color: "#000", margin: 0 },
   tableWrapper: { background: "white", borderRadius: "8px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" },

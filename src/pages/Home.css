@@ -1,6 +1,8 @@
 .home {
   min-height: 100vh;
-  background: #f5f7fa;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,15 +12,17 @@
 
 .title {
   color: #c62828;
-  font-size: 42px;
+  font-size: 72px;
   font-weight: 700;
   margin-bottom: 12px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .tagline {
-  color: #000;
-  font-size: 16px;
+  color: #666;
+  font-size: 28px;
   margin-bottom: 32px;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .card {

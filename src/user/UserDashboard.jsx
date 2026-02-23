@@ -167,7 +167,8 @@ const styles = {
   container: { padding: "32px", maxWidth: "1300px", margin: "0 auto" },
   title: { color: "#1976d2", fontSize: "24px", fontWeight: "700", marginBottom: "28px" },
   statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "18px", marginBottom: "32px" },
-  statCard: { background: "white", borderRadius: "8px", padding: "20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderTop: "3px solid #1976d2" },
+  statCard: { background: "white", borderRadius: "8px", padding: "20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderTop: "3px solid #1976d2", position: "relative" },
+
   statNumber: { fontSize: "32px", fontWeight: "700", color: "#1976d2", marginBottom: "6px" },
   statLabel: { fontSize: "16px", color: "#000", fontWeight: "500" },
   section: { marginBottom: "32px" },
