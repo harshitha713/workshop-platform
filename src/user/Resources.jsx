@@ -1,32 +1,51 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import { getResources, getWorkshops, getAttendance } from "../services/api";
 
 function Resources() {
   const [resources, setResources] = useState([]);
   const [workshops, setWorkshops] = useState([]);
-  const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const currentUser = "Current User";
 
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const [r, w, a] = await Promise.all([
+        getResources(),
+        getWorkshops(),
+        getAttendance(),
+      ]);
+
+      const myAttendance = a.filter(
+        (att) => att.userName === currentUser
+      );
+
+      const attendedIds = myAttendance.map(
+        (att) => att.workshopId
+      );
+
+      const filteredResources = r.filter((res) =>
+        attendedIds.includes(res.workshopId)
+      );
+
+      setResources(filteredResources);
+      setWorkshops(w);
+    } catch (error) {
+      console.error("Error loading resources:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [r, w, a] = await Promise.all([getResources(), getWorkshops(), getAttendance()]);
-    const myAttendance = a.filter(att => att.userName === currentUser);
-    const attendedIds = myAttendance.map(att => att.workshopId);
-    const filteredResources = r.filter(res => attendedIds.includes(res.workshopId));
-    setResources(filteredResources);
-    setWorkshops(w);
-    setAttendance(myAttendance);
-    setLoading(false);
-  };
-
-  const getWorkshopTitle = (id) => workshops.find(w => w.id === id)?.title || "Unknown";
+  const getWorkshopTitle = (id) =>
+    workshops.find((w) => w.id === id)?.title || "Unknown";
 
   const handleDownload = (resource) => {
     const content = `
@@ -41,11 +60,12 @@ function Resources() {
 
 Downloaded: ${new Date().toLocaleString()}
     `;
-    const blob = new Blob([content], { type: 'text/plain' });
+
+    const blob = new Blob([content], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${resource.title.replace('.pdf', '')}.txt`;
+    a.download = `${resource.title.replace(".pdf", "")}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -57,8 +77,10 @@ Downloaded: ${new Date().toLocaleString()}
       <Navbar role="user" />
       <div style={styles.container}>
         <h2 style={styles.title}>View Resources</h2>
-        <p style={styles.subtitle}>Download materials from attended workshops</p>
-        
+        <p style={styles.subtitle}>
+          Download materials from attended workshops
+        </p>
+
         {loading ? (
           <div style={styles.loading}>Loading...</div>
         ) : resources.length === 0 ? (
@@ -75,15 +97,20 @@ Downloaded: ${new Date().toLocaleString()}
                 </tr>
               </thead>
               <tbody>
-                {resources.map(r => (
+                {resources.map((r) => (
                   <tr key={r.id} style={styles.tr}>
                     <td style={styles.td}>{r.title}</td>
-                    <td style={styles.td}>{getWorkshopTitle(r.workshopId)}</td>
+                    <td style={styles.td}>
+                      {getWorkshopTitle(r.workshopId)}
+                    </td>
                     <td style={styles.td}>
                       <span style={styles.typeBadge}>{r.type}</span>
                     </td>
                     <td style={styles.td}>
-                      <button onClick={() => handleDownload(r)} style={styles.downloadBtn}>
+                      <button
+                        onClick={() => handleDownload(r)}
+                        style={styles.downloadBtn}
+                      >
                         Download
                       </button>
                     </td>
@@ -111,7 +138,7 @@ const styles = {
   tr: { borderBottom: "1px solid #f0f0f0" },
   td: { padding: "14px", fontSize: "14px", color: "#000" },
   typeBadge: { background: "#f0f0f0", color: "#000", padding: "5px 12px", borderRadius: "10px", fontSize: "13px", fontWeight: "600" },
-  downloadBtn: { padding: "6px 14px", background: "#333", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }
+  downloadBtn: { padding: "6px 14px", background: "#333", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "13px" },
 };
 
 export default Resources;

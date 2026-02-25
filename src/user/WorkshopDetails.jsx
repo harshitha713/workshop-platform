@@ -13,8 +13,8 @@ function WorkshopDetails() {
   const currentUser = "Current User";
 
   useEffect(() => {
-    loadData();
-  }, [id]);
+  loadData();
+}, [loadData]);
 
   const loadData = async () => {
     setLoading(true);
