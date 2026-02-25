@@ -7,18 +7,33 @@ function UploadResources() {
   const navigate = useNavigate();
   const [workshops, setWorkshops] = useState([]);
   const [formData, setFormData] = useState({ workshopId: "", title: "", type: "PDF" });
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
     getWorkshops().then(setWorkshops);
   }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    uploadResource(formData).then(() => {
+    if (!file) {
+      alert("Please select a file to upload");
+      return;
+    }
+    const resourceData = {
+      ...formData,
+      fileName: file.name,
+      fileSize: (file.size / 1024).toFixed(2) + ' KB',
+      uploadedAt: new Date().toISOString().split('T')[0]
+    };
+    uploadResource(resourceData).then(() => {
       alert("Resource uploaded successfully!");
-      navigate("/admin");
+      navigate("/admin/resources");
     });
   };
 
@@ -50,6 +65,17 @@ function UploadResources() {
                 <option value="Document">Document</option>
               </select>
             </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Upload File</label>
+              <input 
+                type="file" 
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi" 
+                required 
+                onChange={handleFileChange} 
+                style={styles.fileInput} 
+              />
+              {file && <p style={styles.fileName}>Selected: {file.name}</p>}
+            </div>
             <button type="submit" style={styles.submitBtn}>Upload Resource</button>
           </form>
         </div>
@@ -68,6 +94,8 @@ const styles = {
   label: { display: "block", marginBottom: "6px", fontSize: "17px", fontWeight: "600", color: "#333" },
   input: { width: "100%", padding: "12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "16px", boxSizing: "border-box" },
   select: { width: "100%", padding: "12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "16px", boxSizing: "border-box", cursor: "pointer" },
+  fileInput: { width: "100%", padding: "12px", border: "2px dashed #ddd", borderRadius: "6px", fontSize: "16px", boxSizing: "border-box", cursor: "pointer", background: "#f9f9f9" },
+  fileName: { fontSize: "14px", color: "#4caf50", marginTop: "8px", fontWeight: "600" },
   submitBtn: { width: "100%", padding: "13px", background: "#1976d2", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "17px", marginTop: "8px" }
 };
 

@@ -1,125 +1,216 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { getWorkshops, registerForWorkshop } from "../services/api";
+import { getWorkshops, getRegistrations, getAttendance, registerForWorkshop, cancelRegistration } from "../services/api";
 
 function UserDashboard() {
   const [workshops, setWorkshops] = useState([]);
-  const [registeredWorkshops, setRegisteredWorkshops] = useState([1]);
-  const [attendedWorkshops] = useState([1]);
+  const [registrations, setRegistrations] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [formData, setFormData] = useState({ userName: "", email: "" });
 
+  const currentUser = "Current User";
+
   useEffect(() => {
-    getWorkshops().then(setWorkshops);
+    loadData();
   }, []);
 
-  const myWorkshops = workshops.filter(w => registeredWorkshops.includes(w.id));
-  const availableWorkshops = workshops.filter(w => !registeredWorkshops.includes(w.id)).slice(0, 2);
-  const attendedSessions = workshops.filter(w => attendedWorkshops.includes(w.id));
+  const loadData = async () => {
+    setLoading(true);
+    const [w, r, a] = await Promise.all([getWorkshops(), getRegistrations(), getAttendance()]);
+    setWorkshops(w);
+    setRegistrations(r);
+    setAttendance(a);
+    setLoading(false);
+  };
+
+  const myRegistrations = registrations.filter(r => r.userName === currentUser);
+  const myAttendance = attendance.filter(a => a.userName === currentUser);
+  const registeredIds = myRegistrations.map(r => r.workshopId);
+  const attendedIds = myAttendance.map(a => a.workshopId);
+
+  const myWorkshops = workshops.filter(w => registeredIds.includes(w.id));
+  const attendedWorkshops = workshops.filter(w => attendedIds.includes(w.id));
+  const availableWorkshops = workshops.filter(w => !registeredIds.includes(w.id));
 
   const handleRegisterClick = (workshop) => {
+    if (workshop.registered >= workshop.seats) {
+      alert("Workshop is full");
+      return;
+    }
     setSelectedWorkshop(workshop);
     setShowModal(true);
   };
 
-  const handleConfirmRegister = (e) => {
+  const handleConfirmRegister = async (e) => {
     e.preventDefault();
-    registerForWorkshop({ 
-      workshopId: selectedWorkshop.id, 
-      userName: formData.userName, 
-      email: formData.email, 
-      registeredAt: new Date().toISOString().split('T')[0] 
-    }).then(() => {
-      setRegisteredWorkshops([...registeredWorkshops, selectedWorkshop.id]);
+    try {
+      await registerForWorkshop({ workshopId: selectedWorkshop.id, userName: formData.userName, email: formData.email });
       setShowModal(false);
       setFormData({ userName: "", email: "" });
-      alert(`Successfully registered for "${selectedWorkshop.title}"!`);
-    });
+      
+      const notif = { workshopTitle: selectedWorkshop.title, time: new Date().toISOString() };
+      const existing = JSON.parse(localStorage.getItem('userNotifications') || '[]');
+      existing.unshift(notif);
+      localStorage.setItem('userNotifications', JSON.stringify(existing));
+      
+      alert(`✓ Successfully registered for "${selectedWorkshop.title}"!`);
+      loadData();
+    } catch (err) {
+      alert(err.message || "Registration failed");
+    }
   };
+
+  const handleCancel = async (workshop) => {
+    if (window.confirm(`Cancel registration for "${workshop.title}"?`)) {
+      try {
+        await cancelRegistration(workshop.id, currentUser);
+        alert("✓ Registration cancelled successfully");
+        loadData();
+      } catch (err) {
+        alert("Failed to cancel registration");
+      }
+    }
+  };
+
+  const isPast = (date) => new Date(date) < new Date();
+  const isToday = (date) => new Date(date).toDateString() === new Date().toDateString();
+
+  const filteredAvailable = availableWorkshops
+    .filter(w => {
+      const matchSearch = w.title.toLowerCase().includes(search.toLowerCase()) || 
+                         w.instructor.toLowerCase().includes(search.toLowerCase());
+      if (filter === "upcoming") return matchSearch && !isPast(w.date);
+      if (filter === "available") return matchSearch && w.registered < w.seats;
+      return matchSearch;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
     <div style={styles.wrapper}>
       <Navbar role="user" />
       <div style={styles.container}>
         <h2 style={styles.title}>User Dashboard</h2>
+        <p style={styles.subtitle}>Manage your learning journey</p>
 
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{registeredWorkshops.length}</div>
-            <div style={styles.statLabel}>Registered Workshops</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{workshops.filter(w => !registeredWorkshops.includes(w.id)).length}</div>
-            <div style={styles.statLabel}>Available Workshops</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{attendedWorkshops.length}</div>
-            <div style={styles.statLabel}>Attended Sessions</div>
-          </div>
-        </div>
-
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>My Registered Workshops</h3>
-          {myWorkshops.length > 0 ? (
-            <div style={styles.workshopGrid}>
-              {myWorkshops.map(w => (
-                <div key={w.id} style={styles.workshopCard}>
-                  <span style={styles.badge}>Registered</span>
-                  <h4 style={styles.workshopTitle}>{w.title}</h4>
-                  <p style={styles.metaText}>Date: {w.date}</p>
-                  <p style={styles.metaText}>Time: {w.time}</p>
-                  <p style={styles.metaText}>Instructor: {w.instructor}</p>
-                  <Link to={`/user/workshop/${w.id}`}>
-                    <button style={styles.detailsBtn}>View Details</button>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={styles.emptyState}>
-              <p style={styles.emptyText}>You haven't registered for any workshops yet</p>
-            </div>
-          )}
-        </div>
-
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Available Workshops</h3>
-          <div style={styles.workshopGrid}>
-            {availableWorkshops.map(w => (
-              <div key={w.id} style={styles.workshopCard}>
-                <h4 style={styles.workshopTitle}>{w.title}</h4>
-                <p style={styles.metaText}>Date: {w.date}</p>
-                <p style={styles.metaText}>Time: {w.time}</p>
-                <p style={styles.metaText}>Instructor: {w.instructor}</p>
-                <p style={styles.metaText}>Seats: {w.seats - w.registered}/{w.seats} available</p>
-                <button onClick={() => handleRegisterClick(w)} style={styles.registerBtn}>Register Now</button>
+        {loading ? (
+          <div style={styles.loading}>Loading...</div>
+        ) : (
+          <>
+            <div style={styles.statsGrid}>
+              <div style={styles.statCard}>
+                <div style={styles.statLabel}>Registered</div>
+                <div style={styles.statNumber}>{myRegistrations.length}</div>
               </div>
-            ))}
-          </div>
-        </div>
+              <div style={styles.statCard}>
+                <div style={styles.statLabel}>Attended</div>
+                <div style={styles.statNumber}>{myAttendance.length}</div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statLabel}>Available</div>
+                <div style={styles.statNumber}>{availableWorkshops.length}</div>
+              </div>
+            </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Attended Sessions</h3>
-          {attendedSessions.length > 0 ? (
-            <div style={styles.workshopGrid}>
-              {attendedSessions.map(w => (
-                <div key={w.id} style={styles.workshopCard}>
-                  <span style={styles.badgeAttended}>Attended</span>
-                  <h4 style={styles.workshopTitle}>{w.title}</h4>
-                  <p style={styles.metaText}>Date: {w.date}</p>
-                  <p style={styles.metaText}>Time: {w.time}</p>
-                  <p style={styles.metaText}>Instructor: {w.instructor}</p>
+            <div style={styles.section}>
+              <h3 style={styles.sectionTitle}>My Registered Workshops</h3>
+              {myWorkshops.length === 0 ? (
+                <div style={styles.empty}>No registered workshops</div>
+              ) : (
+                <div style={styles.grid}>
+                  {myWorkshops.map(w => (
+                    <div key={w.id} style={styles.card}>
+                      <span style={styles.badge}>Registered</span>
+                      <h4 style={styles.cardTitle}>{w.title}</h4>
+                      <p style={styles.meta}>Date: {formatDate(w.date)}</p>
+                      <p style={styles.meta}>Time: {w.time}</p>
+                      <p style={styles.meta}>Instructor: {w.instructor}</p>
+                      {isToday(w.date) && w.meetingLink && (
+                        <a href={w.meetingLink} target="_blank" rel="noopener noreferrer" style={styles.joinBtn}>
+                          Join Session
+                        </a>
+                      )}
+                      <div style={styles.btnRow}>
+                        <Link to={`/user/workshop/${w.id}`} style={styles.detailsBtn}>Details</Link>
+                        {!attendedIds.includes(w.id) && (
+                          <button onClick={() => handleCancel(w)} style={styles.cancelBtn}>Cancel</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div style={styles.emptyState}>
-              <p style={styles.emptyText}>No attended sessions yet</p>
+
+            <div style={styles.section}>
+              <h3 style={styles.sectionTitle}>Attended Workshops</h3>
+              {attendedWorkshops.length === 0 ? (
+                <div style={styles.empty}>No attended workshops yet</div>
+              ) : (
+                <div style={styles.grid}>
+                  {attendedWorkshops.map(w => (
+                    <div key={w.id} style={styles.card}>
+                      <span style={styles.badgeAttended}>Attended</span>
+                      <h4 style={styles.cardTitle}>{w.title}</h4>
+                      <p style={styles.meta}>Date: {formatDate(w.date)}</p>
+                      <p style={styles.meta}>Instructor: {w.instructor}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div style={styles.section}>
+              <div style={styles.headerRow}>
+                <h3 style={styles.sectionTitle}>Available Workshops</h3>
+                <div style={styles.controls}>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={styles.searchInput}
+                  />
+                  <select value={filter} onChange={(e) => setFilter(e.target.value)} style={styles.filterSelect}>
+                    <option value="all">All</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="available">Has Seats</option>
+                  </select>
+                </div>
+              </div>
+              {filteredAvailable.length === 0 ? (
+                <div style={styles.empty}>No workshops found</div>
+              ) : (
+                <div style={styles.grid}>
+                  {filteredAvailable.map(w => (
+                    <div key={w.id} style={styles.card}>
+                      <h4 style={styles.cardTitle}>{w.title}</h4>
+                      <p style={styles.description}>{w.description}</p>
+                      <p style={styles.meta}>Date: {formatDate(w.date)}</p>
+                      <p style={styles.meta}>Time: {w.time}</p>
+                      <p style={styles.meta}>Instructor: {w.instructor}</p>
+                      <p style={styles.seats}>
+                        {w.registered >= w.seats ? "Full" : `${w.seats - w.registered} seats left`}
+                      </p>
+                      <button 
+                        onClick={() => handleRegisterClick(w)} 
+                        style={w.registered >= w.seats ? styles.registerBtnDisabled : styles.registerBtn}
+                        disabled={w.registered >= w.seats}
+                      >
+                        {w.registered >= w.seats ? "Full" : "Register"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {showModal && (
@@ -151,7 +242,7 @@ function UserDashboard() {
                 />
               </div>
               <div style={styles.modalActions}>
-                <button type="button" onClick={() => setShowModal(false)} style={styles.cancelBtn}>Cancel</button>
+                <button type="button" onClick={() => setShowModal(false)} style={styles.cancelModalBtn}>Cancel</button>
                 <button type="submit" style={styles.confirmBtn}>Confirm Registration</button>
               </div>
             </form>
@@ -162,36 +253,52 @@ function UserDashboard() {
   );
 }
 
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const styles = {
-  wrapper: { minHeight: "100vh", background: "#f5f7fa" },
+  wrapper: { minHeight: "100vh", background: "#f5f5f5" },
   container: { padding: "32px", maxWidth: "1300px", margin: "0 auto" },
-  title: { color: "#1976d2", fontSize: "24px", fontWeight: "700", marginBottom: "28px" },
-  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "18px", marginBottom: "32px" },
-  statCard: { background: "white", borderRadius: "8px", padding: "20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderTop: "3px solid #1976d2" },
-  statNumber: { fontSize: "32px", fontWeight: "700", color: "#1976d2", marginBottom: "6px" },
-  statLabel: { fontSize: "16px", color: "#000", fontWeight: "500" },
+  title: { color: "#000", fontSize: "24px", fontWeight: "700", margin: "0" },
+  subtitle: { color: "#000", fontSize: "16px", marginBottom: "28px", marginTop: "6px" },
+  loading: { textAlign: "center", padding: "40px", fontSize: "16px", color: "#000" },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "32px" },
+  statCard: { background: "white", borderRadius: "8px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #333" },
+  statLabel: { fontSize: "15px", color: "#000", fontWeight: "500", marginBottom: "8px" },
+  statNumber: { fontSize: "32px", fontWeight: "700", color: "#000" },
   section: { marginBottom: "32px" },
-  sectionTitle: { color: "#333", fontSize: "18px", fontWeight: "600", marginBottom: "16px" },
-  workshopGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" },
-  workshopCard: { background: "white", borderRadius: "8px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", border: "1px solid #e8eef5" },
-  badge: { background: "#1976d2", color: "white", padding: "4px 12px", borderRadius: "10px", fontSize: "13px", fontWeight: "600", display: "inline-block", marginBottom: "10px" },
-  badgeAttended: { background: "#4caf50", color: "white", padding: "4px 12px", borderRadius: "10px", fontSize: "13px", fontWeight: "600", display: "inline-block", marginBottom: "10px" },
-  workshopTitle: { fontSize: "18px", fontWeight: "600", color: "#333", marginBottom: "10px", marginTop: "0" },
-  metaText: { fontSize: "16px", color: "#000", margin: "4px 0" },
-  detailsBtn: { width: "100%", padding: "11px", background: "#1976d2", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "16px", marginTop: "10px" },
-  registerBtn: { width: "100%", padding: "11px", background: "#4caf50", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "16px", marginTop: "10px" },
-  emptyState: { background: "white", borderRadius: "8px", padding: "40px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" },
-  emptyText: { fontSize: "17px", color: "#000" },
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-  modal: { background: "white", borderRadius: "8px", width: "90%", maxWidth: "450px", padding: "28px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" },
-  modalTitle: { margin: "0 0 8px 0", fontSize: "22px", fontWeight: "600", color: "#333" },
-  modalSubtitle: { fontSize: "17px", color: "#000", marginBottom: "20px" },
-  formGroup: { marginBottom: "16px" },
-  label: { display: "block", marginBottom: "6px", fontSize: "16px", fontWeight: "600", color: "#333" },
-  input: { width: "100%", padding: "12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "16px", boxSizing: "border-box" },
-  modalActions: { display: "flex", gap: "10px", marginTop: "20px" },
-  cancelBtn: { flex: 1, padding: "12px", background: "#f5f5f5", color: "#333", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "16px" },
-  confirmBtn: { flex: 1, padding: "12px", background: "#1976d2", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "16px" }
+  sectionTitle: { color: "#000", fontSize: "18px", fontWeight: "600", marginBottom: "16px" },
+  headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" },
+  controls: { display: "flex", gap: "12px" },
+  searchInput: { padding: "8px 12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px", width: "180px", color: "#000" },
+  filterSelect: { padding: "8px 12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px", background: "white", cursor: "pointer", color: "#000" },
+  empty: { background: "white", padding: "40px", textAlign: "center", borderRadius: "8px", color: "#000", fontSize: "15px" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" },
+  card: { background: "white", borderRadius: "8px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", border: "1px solid #e0e0e0" },
+  badge: { background: "#333", color: "white", padding: "4px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "600", display: "inline-block", marginBottom: "12px" },
+  badgeAttended: { background: "#666", color: "white", padding: "4px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "600", display: "inline-block", marginBottom: "12px" },
+  cardTitle: { fontSize: "17px", fontWeight: "600", color: "#000", margin: "0 0 12px 0" },
+  description: { fontSize: "14px", color: "#000", marginBottom: "12px" },
+  meta: { fontSize: "14px", color: "#000", margin: "4px 0" },
+  seats: { fontSize: "14px", color: "#000", fontWeight: "600", marginTop: "8px" },
+  joinBtn: { display: "block", width: "100%", padding: "10px", background: "#000", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "600", textAlign: "center", textDecoration: "none", marginTop: "12px" },
+  btnRow: { display: "flex", gap: "8px", marginTop: "12px" },
+  detailsBtn: { flex: 1, padding: "10px", background: "#333", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "600", textAlign: "center", textDecoration: "none", display: "block" },
+  cancelBtn: { flex: 1, padding: "10px", background: "#999", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "600" },
+  registerBtn: { width: "100%", padding: "10px", background: "#000", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "600", marginTop: "12px" },
+  registerBtnDisabled: { width: "100%", padding: "10px", background: "#ccc", color: "#666", border: "none", borderRadius: "6px", cursor: "not-allowed", fontSize: "14px", fontWeight: "600", marginTop: "12px" },
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 },
+  modal: { background: "white", borderRadius: "12px", width: "90%", maxWidth: "500px", padding: "32px", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" },
+  modalTitle: { margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", color: "#000" },
+  modalSubtitle: { fontSize: "15px", color: "#000", marginBottom: "24px" },
+  formGroup: { marginBottom: "20px" },
+  label: { display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: "#000" },
+  input: { width: "100%", padding: "10px", border: "2px solid #ddd", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box", color: "#000" },
+  modalActions: { display: "flex", gap: "12px", marginTop: "24px" },
+  cancelModalBtn: { flex: 1, padding: "10px", background: "#999", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "14px" },
+  confirmBtn: { flex: 1, padding: "10px", background: "#000", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "14px" }
 };
 
 export default UserDashboard;

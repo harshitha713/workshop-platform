@@ -13,7 +13,7 @@ function Home() {
 
   return (
     <div className="home">
-      <h1 className="title" style={{color: "#000"}}>Online Workshop Platform</h1>
+      <h1 className="title">Online Workshop Platform</h1>
       <p className="tagline" style={{color: "#000"}}>
         Online Workshop & Training Management Platform
       </p>

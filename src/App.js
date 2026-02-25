@@ -4,6 +4,8 @@ import Register from "./pages/Register";
 import UserDashboard from "./user/UserDashboard";
 import AdminDashboard from "./admin/AdminDashboard";
 import AddWorkshop from "./admin/AddWorkshop";
+import EditWorkshop from "./admin/EditWorkshop";
+import AddSessionLink from "./admin/AddSessionLink";
 import ManageRegistrations from "./admin/ManageRegistrations";
 import UploadResources from "./admin/UploadResources";
 import AdminResources from "./admin/AdminResources";
@@ -23,6 +25,8 @@ function App() {
         <Route path="/user/resources" element={<Resources />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/add-workshop" element={<AddWorkshop />} />
+        <Route path="/admin/edit-workshop/:id" element={<EditWorkshop />} />
+        <Route path="/admin/add-session-link" element={<AddSessionLink />} />
         <Route path="/admin/registrations" element={<ManageRegistrations />} />
         <Route path="/admin/upload-resources" element={<UploadResources />} />
         <Route path="/admin/resources" element={<AdminResources />} />

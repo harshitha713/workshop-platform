@@ -28,7 +28,7 @@ table th, table td {
 }
 
 table th {
-  background: #1976d2;
+  background: #000;
   color: white;
   font-weight: 600;
   text-transform: uppercase;
@@ -57,7 +57,7 @@ button {
 
 button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 button:active {
